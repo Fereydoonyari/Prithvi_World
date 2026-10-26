@@ -14,6 +14,22 @@ Prithvi stays frozen. The training target is the **next real embedding**, not a 
 
 ---
 
+## Screenshots
+
+Workbench UI with study areas, frozen Prithvi encoder, and AOI editing:
+
+![PrithviWORLD Workbench — AOI and model architecture](img/Screenshot%202026-09-04%20102726.png)
+
+Token / change overlay on the HLS footprint:
+
+![Token change overlay on satellite map](img/Screenshot%202026-09-04%20102926.png)
+
+Decoder preview over the same window:
+
+![Prithvi decoder RGB preview overlay](img/Screenshot%202026-09-04%20103003.png)
+
+---
+
 ## Quick start
 
 ```powershell
