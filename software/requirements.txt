@@ -1,0 +1,17 @@
+# PrithviWORLD Workbench — standalone software project
+fastapi>=0.110
+uvicorn[standard]>=0.27
+sqlalchemy>=2.0
+pydantic>=2.0
+python-multipart>=0.0.9
+pillow>=10.0
+numpy
+pandas
+matplotlib
+torch
+torchvision
+timm
+einops
+rasterio
+earthaccess
+huggingface_hub

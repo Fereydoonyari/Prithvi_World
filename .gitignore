@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+
+# Large runtime artefacts (never commit)
+data/
+embeddings/
+models/
+HLS_data/
+*.pt
+*.pth
+*.ckpt
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+*.zip
+
+# Software runtime data (keep the empty placeholder)
+software/data/**
+!software/data/.gitkeep

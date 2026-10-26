@@ -1,0 +1,44 @@
+{
+  "model": {
+    "repo_id": "ibm-nasa-geospatial/Prithvi-EO-2.0-100M-TL",
+    "patch_size": 224,
+    "token_grid": 14,
+    "embed_dim": 768,
+    "product": "HLSS30",
+    "bands": ["B02", "B03", "B04", "B8A", "B11", "B12"],
+    "fmask_mode": "cloud_shadow_snow_no_water"
+  },
+  "search": {
+    "search_count": 20,
+    "bbox_pad_deg": 0.05
+  },
+  "map": {
+    "google_maps_api_key": ""
+  },
+  "locations": {
+    "california": {
+      "name": "California",
+      "latitude": 39.39,
+      "longitude": -121.98,
+      "description": "Mediterranean / forest / burned landscape",
+      "environment": "mediterranean_burn",
+      "landcover": "burn_scar_mix"
+    },
+    "italy": {
+      "name": "Italy",
+      "latitude": 44.98,
+      "longitude": 11.90,
+      "description": "Northern Italy — Mediterranean agriculture",
+      "environment": "mediterranean_agriculture",
+      "landcover": "agriculture"
+    },
+    "morocco": {
+      "name": "Morocco",
+      "latitude": 31.50,
+      "longitude": -7.81,
+      "description": "Arid / semi-arid control",
+      "environment": "arid",
+      "landcover": "desert_semiarid"
+    }
+  }
+}

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PrithviWORLD Workbench</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/css/app.css?v=31" />
+</head>
+<body>
+  <div id="login" class="login-screen">
+    <div class="login-mosaic-wrap" aria-hidden="true">
+      <div class="login-mosaic">
+        <div class="login-cell s-1"><img src="/static/img/web/1.jpg" alt="" /></div>
+        <div class="login-cell empty e-1"></div>
+        <div class="login-cell s-5"><img src="/static/img/web/3.jpg" alt="" /></div>
+        <div class="login-cell s-6"><img src="/static/img/web/6.jpg" alt="" /></div>
+        <div class="login-cell s-3"><img src="/static/img/web/2.jpg" alt="" /></div>
+        <div class="login-cell empty e-2"></div>
+        <div class="login-cell s-7"><img src="/static/img/web/4.jpg" alt="" /></div>
+        <div class="login-cell s-4"><img src="/static/img/web/7.jpg" alt="" /></div>
+        <div class="login-cell empty e-3"></div>
+        <div class="login-cell s-2"><img src="/static/img/web/5.jpg" alt="" /></div>
+      </div>
+    </div>
+    <aside class="login-side">
+      <div class="login-copy">
+        <p class="login-kicker">HLS · Prithvi EO · latent dynamics</p>
+        <h1>PrithviWORLD Workbench</h1>
+        <p>
+          A land surface forecasting bench on Harmonized Landsat Sentinel scenes.
+          Frozen <strong>Prithvi-EO-2.0-100M-TL</strong> encodes each 6.7&nbsp;km window
+          into a 14×14 token grid. Small dynamics models forecast the next latent state;
+          the frozen Prithvi decoder reconstructs the scene.
+        </p>
+        <ul>
+          <li>Pin a study area and index HLS imagery</li>
+          <li>Compare token change and vegetation (NDVI) over time to see the history</li>
+          <li>Train linear, LSTM, S4D, or ConvLSTM forecasters and inspect predicted vs real RGB</li>
+        </ul>
+      </div>
+      <form id="login-form" class="login-card" novalidate>
+        <div class="auth-tabs">
+          <button type="button" id="auth-signin" class="active">Sign in</button>
+          <button type="button" id="auth-register">Create account</button>
+        </div>
+        <label>Email <input id="email" type="text" value="admin@workbench.local" autocomplete="username" /></label>
+        <label>Password <input id="password" type="password" value="admin" autocomplete="current-password" /></label>
+        <label id="password2-wrap" hidden>Confirm password <input id="password2" type="password" autocomplete="new-password" /></label>
+        <p id="login-error" class="error" hidden></p>
+        <button id="auth-submit" type="submit">Sign in</button>
+      </form>
+    </aside>
+  </div>
+
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <strong>PrithviWORLD</strong>
+        <span>Workbench</span>
+      </div>
+      <div class="topbar-meta">
+        <span id="who"></span>
+        <span id="who-role" class="role-badge" hidden></span>
+        <button id="logout" type="button" class="ghost">Sign out</button>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="rail">
+        <details class="pane" data-pane="aois" open>
+          <summary>
+            <h2>Study areas</h2>
+            <button id="aoi-new" type="button" class="ghost">New</button>
+          </summary>
+          <div class="pane-body">
+            <p class="hint">New places a pin at the map center. Drag it or click the map, then save.</p>
+            <ul id="aoi-list" class="list"></ul>
+          </div>
+        </details>
+
+        <details class="pane" data-pane="arch" open>
+          <summary><h2>Model architecture</h2></summary>
+          <div class="pane-body">
+            <div class="arch">
+              <div class="arch-card rep">
+                <span class="arch-role">Representation layer</span>
+                <span class="arch-model" id="arch-rep">Prithvi-EO-2.0-100M-TL</span>
+                <span class="arch-note">frozen encoder ? 14×14×768 tokens</span>
+              </div>
+              <div class="arch-arrow">?</div>
+              <div class="arch-card dyn">
+                <span class="arch-role">Dynamic layer</span>
+                <span class="arch-model" id="arch-dynamic">— select a model</span>
+                <span class="arch-note">forecasts z??1 from token history</span>
+              </div>
+              <div class="arch-arrow">?</div>
+              <div class="arch-card dec">
+                <span class="arch-role">Decoder</span>
+                <span class="arch-model" id="arch-decoder">Prithvi decoder</span>
+                <span class="arch-note">reconstructs the RGB scene</span>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="pane" data-pane="scenes">
+          <summary>
+            <h2>Scenes <span id="obs-count" class="count"></span></h2>
+            <button id="btn-index" type="button" class="ghost">Index HLS</button>
+          </summary>
+          <div class="pane-body">
+            <p class="hint">Download imagery from NASA Earthdata, then Index ? Encode.</p>
+            <div class="two">
+              <label>Start <input id="ingest-start" type="date" value="2022-01-01" /></label>
+              <br />
+              <label>End <input id="ingest-end" type="date" value="2024-12-31" /></label>
+            </div>
+            <button id="btn-ingest" type="button">Download HLS</button>
+            <ul id="obs-list" class="list dense scroll"></ul>
+          </div>
+        </details>
+
+        <details class="pane" data-pane="jobs" open>
+          <summary>
+            <h2>Jobs</h2>
+            <button id="btn-clear-jobs" type="button" class="ghost">Clear</button>
+          </summary>
+          <div class="pane-body">
+            <div class="btn-row">
+              <button id="btn-encode" type="button">Encode</button>
+            </div>
+            <ul id="job-list" class="list dense scroll"></ul>
+          </div>
+        </details>
+
+      </aside>
+
+      <main class="map-wrap">
+        <div id="map"></div>
+        <div class="map-legend">
+          Satellite · 224×224 HLS window ˜ 6.7 km
+        </div>
+      </main>
+
+      <aside class="panel">
+        <nav class="task-tabs" role="tablist" aria-label="Tasks">
+          <button type="button" role="tab" data-task="aoi" aria-selected="true">AOI</button>
+          <button type="button" role="tab" data-task="overlay" aria-selected="false">Overlay</button>
+          <button type="button" role="tab" data-task="train" aria-selected="false">Train</button>
+          <button type="button" role="tab" data-task="predict" aria-selected="false">Predict</button>
+          <button type="button" role="tab" data-task="explain" aria-selected="false">Explain</button>
+        </nav>
+
+        <div class="task-stage">
+          <article class="task-panel active" data-task="aoi">
+            <header class="task-head">
+              <h2>AOI</h2>
+              <button type="button" class="ghost task-collapse" aria-expanded="true" title="Collapse">-</button>
+            </header>
+            <div class="task-body">
+              <form id="aoi-form" class="stack">
+                <label>Name <input name="name" required /></label>
+                <div class="two">
+                  <label>Lat <input name="latitude" type="number" step="0.0001" required /></label>
+                  <label>Lon <input name="longitude" type="number" step="0.0001" required /></label>
+                </div>
+                <div class="radios">
+                  <label class="check"><input type="radio" name="visibility" value="private" checked /> Private (only me)</label>
+                  <label class="check"><input type="radio" name="visibility" value="shared" /> Shared (everyone)</label>
+                </div>
+                <label>Biome <input name="biome" /></label>
+                <label>Notes <textarea name="notes" rows="2"></textarea></label>
+                <div class="btn-row">
+                  <button type="submit">Save AOI</button>
+                  <button id="aoi-delete" type="button" class="danger ghost">Delete</button>
+                </div>
+              </form>
+            </div>
+          </article>
+
+          <article class="task-panel" data-task="overlay">
+            <header class="task-head">
+              <h2>Overlay compare</h2>
+              <button type="button" class="ghost task-collapse" aria-expanded="true" title="Collapse">-</button>
+            </header>
+            <div class="task-body stack">
+              <p class="hint">Change map is the 14×14 Prithvi token grid (~480 m cells). Vegetation uses 30 m HLS pixels.</p>
+              <label>From <select id="date-a"></select></label>
+              <label>To <select id="date-b"></select></label>
+              <div class="radios" id="overlay-kinds">
+                <label class="check"><input type="radio" name="overlay-kind" value="token" checked /> Change map</label>
+                <label class="check"><input type="radio" name="overlay-kind" value="vegetation" /> Vegetation heatmap</label>
+              </div>
+              <div class="heat-legend" id="legend-change">
+                <span>stable</span><i class="magma"></i><span>changed</span>
+              </div>
+              <div class="heat-legend" id="legend-veg" hidden>
+                <span>loss</span><i class="veg"></i><span>gain</span>
+              </div>
+              <label>Opacity <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="0.75" /></label>
+              <button id="btn-overlay" type="button">Show overlay</button>
+              <p id="overlay-msg" class="muted"></p>
+
+              <div class="sec-head">
+                <h3 class="sub-head">Vegetation trend</h3>
+              </div>
+              <p class="hint">Mean NDVI of every cloud-clear HLS scene in a date range.</p>
+              <div class="two">
+                <label>Start <input id="veg-from" type="date" /></label>
+                <label>End <input id="veg-to" type="date" /></label>
+              </div>
+              <button id="btn-veg-trend" type="button">Show NDVI trend</button>
+              <p id="veg-msg" class="muted"></p>
+              <div class="veg-chart-wrap"><canvas id="veg-chart" height="150"></canvas></div>
+            </div>
+          </article>
+
+          <article class="task-panel" data-task="train">
+            <header class="task-head">
+              <h2>Train model</h2>
+              <button type="button" class="ghost task-collapse" aria-expanded="true" title="Collapse">-</button>
+            </header>
+            <div class="task-body stack">
+              <form id="exp-form" class="stack">
+                <label>Run name <input name="name" value="forecast-run" /></label>
+                <p class="hint">Residual forecasters on frozen Prithvi tokens, same evaluation protocol. Check at least one.</p>
+                <div id="model-checks" class="checklist">
+                  <label class="check"><input type="checkbox" value="linear" checked /> Linear + day-of-year</label>
+                  <label class="check"><input type="checkbox" value="token_lstm" checked /> Token LSTM</label>
+                  <label class="check"><input type="checkbox" value="s4d" /> S4D</label>
+                  <label class="check"><input type="checkbox" value="convlstm" /> ConvLSTM</label>
+                </div>
+                <div class="two">
+                  <label>Seeds <input name="seeds" type="number" value="3" min="1" max="5" /></label>
+                  <label>Epochs <input name="epochs" type="number" value="12" min="1" /></label>
+                </div>
+                <button type="submit">Train &amp; evaluate</button>
+              </form>
+              <div class="sec-head">
+                <h3 class="sub-head">Training history</h3>
+                <button id="btn-clear-exps" type="button" class="ghost">Clear all</button>
+              </div>
+              <ul id="exp-list" class="list dense"></ul>
+              <h3 class="sub-head">Summary — <span id="metrics-run" class="muted">no run selected</span></h3>
+              <div id="metrics-table" class="metrics-table">
+                <p class="muted">Select a run above to see its metrics.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="task-panel" data-task="predict">
+            <header class="task-head">
+              <h2>Prediction</h2>
+              <button type="button" class="ghost task-collapse" aria-expanded="true" title="Collapse">-</button>
+            </header>
+            <div class="task-body stack" id="decode-box">
+              <p class="hint">Select a run in Train model, then compare HLS RGB, frozen-decoder reconstructions, and NDVI at z?, z??? (~21 days), and the forecast ????.</p>
+              <p id="decode-run" class="muted"></p>
+              <label>Model <select id="decode-model"></select></label>
+              <button id="btn-decode" type="button">Predicted vs real</button>
+              <p id="decode-msg" class="muted"></p>
+              <div id="decode-strip" class="decode-strip"></div>
+            </div>
+          </article>
+
+          <article class="task-panel" data-task="explain">
+            <header class="task-head">
+              <h2>Explain</h2>
+              <button type="button" class="ghost task-collapse" aria-expanded="true" title="Collapse">-</button>
+            </header>
+            <div class="task-body explain-body">
+              <p class="hint">Ask me Questions here, i will try to Explain</p>
+              <p id="explain-status" class="muted">Checking assistant…</p>
+              <div id="explain-chips" class="explain-chips"></div>
+              <div id="explain-log" class="explain-log" aria-live="polite"></div>
+              <form id="explain-form" class="explain-form">
+                <textarea id="explain-input" rows="2" maxlength="2000" placeholder="Ask about NDVI, metrics, or this forecast…" disabled></textarea>
+                <button id="explain-send" type="submit" disabled>Send</button>
+              </form>
+            </div>
+          </article>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button id="lightbox-close" type="button" class="lightbox-close" title="Close (Esc)">×</button>
+    <figure class="lightbox-figure">
+      <img id="lightbox-img" alt="" />
+      <figcaption id="lightbox-cap"></figcaption>
+    </figure>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/static/js/app.js?v=31"></script>
+</body>
+</html>
